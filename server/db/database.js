@@ -683,6 +683,13 @@ const migrations = [
   // A fisheye (360°) camera shown as a normal 16:9 view: JSON settings (lib/fisheye.js), NULL = show
   // the picture as it comes.
   "ALTER TABLE content ADD COLUMN fisheye TEXT",
+  // An ONVIF camera (lib/onvif): JSON {xaddr, username, profile_token, profile_name, ptz, via,
+  // services} so the server can refresh its stream address, fetch a snapshot and steer it. `via` is
+  // 'server' or the id of the screen that bridges the camera's network. The password is NOT in it:
+  // onvif_secret holds it encrypted (lib/secretbox.js) and it is never sent back to a browser.
+  // NULL = an ordinary stream.
+  "ALTER TABLE content ADD COLUMN onvif TEXT",
+  "ALTER TABLE content ADD COLUMN onvif_secret TEXT",
   // #216: subtitle/caption support as a content property (applied automatically by the
   // player, no in-player controls). YouTube uses captions_enabled + captions_lang (via the
   // IFrame API); uploaded videos use subtitle_url (a .vtt filename in the content dir,
@@ -4417,6 +4424,13 @@ migrationStep('#660 playlist and item backgrounds', () => {
   // "Transparent background" on one item: its widget, bundle or template is drawn see-through.
   // 1 or NULL; NULL = as the content itself sets it.
   try { db.prepare('ALTER TABLE playlist_items ADD COLUMN transparent_bg INTEGER').run(); console.log('[migrate] playlist_items.transparent_bg added'); } catch (_) { /* present */ }
+});
+
+migrationStep('playlist default zone', () => {
+  // The zone of the playlist's layout that NEW items added without a zone are given
+  // (lib/playlist-layout.js zoneForNewItem). A setting, not published content: it is stored on each
+  // item as it is added, so existing items never move. NULL = no zone, as before.
+  try { db.prepare('ALTER TABLE playlists ADD COLUMN default_zone_id TEXT').run(); console.log('[migrate] playlists.default_zone_id added'); } catch (_) { /* present */ }
 });
 
 migrationStep('SAML', () => {

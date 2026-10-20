@@ -4,6 +4,36 @@
 
 ### Added
 
+- **ONVIF cameras** (docs/onvif-cameras.md). **Add content → ONVIF camera**:
+  - Find cameras on the network, or type an address. Sign in, pick a stream, and add it as a live
+    stream every RTSP-capable screen already plays.
+  - The camera's snapshot becomes the thumbnail.
+  - The item's Edit dialog can ask for a new snapshot or a new stream address, change the stored
+    password and, on a PTZ camera, pan, tilt, zoom, go home and go to presets. A held arrow
+    moves; the camera stops by itself if a stop is lost.
+  - A hosted server reaches the cameras through a **screen on their network**: Android and the
+    Raspberry Pi / Windows player relay three narrow operations (discovery, a SOAP request, a
+    snapshot), private addresses only, size-capped. A self-hosted server can talk to them itself
+    when `OUTBOUND_ALLOW_PRIVATE` / `OUTBOUND_ALLOW_HOSTS` opens the LAN.
+  - The camera password is stored encrypted and never sent back to a browser.
+  - Works with WS-Security and HTTP Digest, Media and Media2, and cameras with the wrong clock.
+  - Additive columns `content.onvif` and `content.onvif_secret`. New player capability
+    `onvif.bridge`.
+- **Weather in your language** (#667, requested by @djalfe). A Weather data source's language now
+  translates the weather conditions ("Mainly clear") and the template's words ("Feels like",
+  "Humidity", "Today", "Updated", the chance of precipitation), not only the day names. Language
+  files on the server cover Danish, Dutch, English, French, German, Hindi, Italian, Japanese,
+  Portuguese, Simplified Chinese and Spanish. Any other language falls back to English, and a data
+  source with no language set looks exactly as before. The data source gains `label_*` fields and
+  `day0_precip_text`. The **Weather forecast** template 1.1.0 (needs server 3.0.2) and **Weather —
+  animated** 1.1.0 use them; the animated one falls back to English on an older server.
+
+- **A default zone for a playlist.** Under the playlist's **Layout**, pick the zone that **new** items
+  go to when they're added without one (from the Manager app, the API, Make a sign, content requests,
+  agency uploads, cloud folders...). It replaces the layout's main zone for that playlist's new items
+  only, so playlists sharing a layout can each send new items to a different zone. **Existing items
+  never move**: the zone is saved on each item as it's added, so items already in the playlist, and
+  ones added before a later change, stay where they are. Additive column `playlists.default_zone_id`.
 - **Status screen on the Raspberry Pi player**: a small SPI panel (ILI9341 2.4", 240x320, e.g. the
   HiLetgo module) next to the main display shows online, offline or pairing (with the pairing code),
   what's playing, the server, IP and Wi-Fi signal, temperature, disk, RAM and the last warning or
@@ -41,6 +71,25 @@
   held to the Android and native maths by `shared/fisheye-vectors.json`.
 
 ### Fixed
+
+- **A camera in a layout zone reconnects by itself (Android).** A zone with one item had no error
+  handling at all, and no zone had a stall watchdog. A camera whose connection dropped (the NVR
+  restarted, the Wi-Fi roamed, the camera rebooted) froze on its last frame until the app was
+  restarted. Zone and video-wall videos are now watched like full-screen video:
+  - Watched: the frames actually drawn, so a picture that stops changing counts as a fault.
+  - An error, or 10 s with no new frame (30 s buffering), is a fault.
+  - On a fault, a zone of one item reconnects in place after 2, 4, 8, 15, then every 30 s. A
+    rotating zone moves on as before.
+  - A live stream in a wall zone reconnects instead of showing the zone background until a
+    boundary it never reaches.
+
+- **Empty zones stay empty on the web player** (#666, reported by @djalfe). In a multi-zone layout, a
+  zone with nothing assigned to it showed a copy of whatever was playing, so the same content
+  appeared in zones it was never put in. This affected browsers, BrightSign and webOS, which use
+  the web player. Those zones now stay blank, as they already did on Android, Tizen, the native player and Roku. Items
+  without a zone still go to the first zone that has nothing of its own, so no existing screen moves
+  its content. If no zone has anything at all, the current item is still shown, so a layout never
+  blanks the whole screen.
 
 - **Android and Samsung Tizen now paint the device's background colour** (#325 parity). Only the web,
   native and Roku players did; on these two it was saved and never shown.
